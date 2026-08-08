@@ -23,7 +23,10 @@ async function compress(
     // Read the source with all frames so animated GIFs/WebPs keep their
     // animation (single-frame images are unaffected). One sharp instance for
     // both metadata and the encode pipeline — no double parse of the input.
-    const pipeline = sharp(imagePath, { animated: true });
+    // failOn: "none" so a slightly truncated/corrupt image is still decoded and
+    // compressed (the browser renders it partially anyway) rather than thrown to
+    // full-size passthrough.
+    const pipeline = sharp(imagePath, { animated: true, failOn: "none" });
     const meta = await pipeline.metadata();
     const isAnimated = (meta.pages || 1) > 1;
 
