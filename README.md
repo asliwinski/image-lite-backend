@@ -1,52 +1,49 @@
-# Bandwidth Hero Data Compression Service
+# Image Lite Backend
 
-Welcome to the **Serverless** port of Bandwidth Hero Data Compression Service 🚀. This service is designed to compress images on the fly, saving you bandwidth and improving your browsing experience.
+The image-compression proxy behind the **Image Lite** browser extension. It
+downloads an image on the user's behalf, resizes and re-encodes it on the fly
+(never touching disk) to a smaller **WebP / AVIF / JPEG**, and streams it back —
+so pages load less image data.
 
-To get started with deploying your own instance of this service, please follow the detailed instructions in the #Deployment section below.
+> It fetches images on the user's behalf, passing through the browser's cookies,
+> referer, and IP to the origin host.
 
-Forked from [adi-g15/bandwidth-hero-proxy](https://github.com/adi-g15/bandwidth-hero-proxy) just trying to make the code up-to-date and error less upto my limited (equal to nothing) coding knowledge.
+See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the request contract, the
+per-runtime encoders, and the design decisions.
 
-The original and this fork, both are, data compression service used by [Bandwidth Hero](https://github.com/ayastreb/bandwidth-hero) browser extension. It compresses (optionally grayscale) given image to low-res [WebP](https://developers.google.com/speed/webp/) or JPEG image.
+## Runtimes
 
-It downloads original image and transforms it with [Sharp](https://github.com/lovell/sharp) on the fly without saving images on disk.
+The **same codebase deploys to three runtimes**; only the image encoder differs,
+because `sharp` needs native `libvips` which the Cloudflare Workers runtime can't
+load. Runtime-agnostic logic lives in `util/`.
 
-**Benefits** - It's faster for initial requests, as it doesn't require restarting a sleeping heroku server deployment, also, you may benefit from a better ping (in my case it is such)
+| Runtime | Entry | Encoder |
+|---|---|---|
+| **Cloudflare Workers** | `worker.ts` | `@jsquash` WASM codecs |
+| **Vercel** | `api/index.ts` (default export) | `sharp` |
+| **Netlify** | `netlify/functions/index.ts` → `handler` in `api/index.ts` | `sharp` |
 
-> Note: It downloads images on user's behalf (By passing in same headers to the domain with required image), passing cookies and user's IP address through to the origin host.
+## Request contract
 
-## Deployment
+```
+<proxy>?w=<px>&q=<quality>&bw=<0|1>&f=<webp|jpeg|avif>&url=<RAW IMAGE URL>
+```
 
-This repo can deploy to two runtimes from the same codebase. Shared, runtime-agnostic
-logic lives in `util/` (`extractTargetUrl`, `shouldCompress`, `headers`); only the image
-encoder differs, because `sharp` needs native `libvips`.
+Compression options come **before** `url=` (so they're part of the CDN cache
+key); the raw image URL is everything **after the first `url=`**, verbatim (so
+signed-URL query strings survive). See `util/extractOptions` and
+`util/extractTargetUrl`.
 
-### Vercel (Node + sharp)
-
-`api/index.ts` is a Vercel serverless function that compresses with `sharp`. Connect the
-repo to Vercel and it deploys automatically; the endpoint is
-`https://<your-project>.vercel.app/api/index`.
-
-### Cloudflare Workers (edge + WASM)
-
-`worker.ts` is a Cloudflare Worker. `sharp` can't run in the Workers runtime, so it encodes
-with the [`@jsquash`](https://github.com/jamsinclair/jSquash) WASM codecs
-(`util/compressWasm.ts`) instead. It decodes JPEG/PNG/WebP and re-encodes to WebP/JPEG.
+## Develop & deploy
 
 ```sh
 npm install
-npm run dev:cf      # local dev
-npm run deploy:cf   # deploy (needs `wrangler login` once)
+npm test              # jest
+
+# Cloudflare Worker
+npm run dev:cf        # local dev
+npm run deploy:cf     # deploy (after `wrangler login`)
 ```
 
-The endpoint is `https://image-lite-backend.<your-subdomain>.workers.dev`.
-
-Then, in the **Data Compression Service** of the extension (or the `proxies` list in the
-Image Lite extension's `background.js`), point at whichever endpoint you deployed.
-
-<!-- READ THIS ARTICLE LATER AdityaG
-Check out [this guide](https://www.digitalocean.com/community/tutorials/how-to-set-up-a-node-js-application-for-production-on-ubuntu-16-04)
-on how to setup Node.js on Ubuntu. 
-DigitalOcean also provides an
-[easy way](https://www.digitalocean.com/products/one-click-apps/node-js/) to setup a server ready to
-host Node.js apps.
--->
+Vercel and Netlify deploy automatically from the connected repo. Then point the
+extension's proxy list at whichever endpoint(s) you deployed.

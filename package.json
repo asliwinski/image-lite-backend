@@ -1,7 +1,7 @@
 {
-  "name": "aproxy15",
+  "name": "image-lite-backend",
   "version": "1.0.1",
-  "description": "Data compression service that converts images to low-res WebP or JPEG on the fly. Used in Bandwidth-Hero browser extension.",
+  "description": "Image Lite backend: on-the-fly image compression proxy (WebP/AVIF/JPEG) for the Image Lite browser extension.",
   "license": "MIT",
   "scripts": {
     "test": "jest",

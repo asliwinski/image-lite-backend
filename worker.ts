@@ -56,7 +56,7 @@ export default {
     const opts = extractOptions(rawQuery);
 
     if (!url) {
-      return new Response("bandwidth-hero-proxy", { status: 200 });
+      return new Response("Image Lite proxy", { status: 200 });
     }
 
     url = url.replace(/http:\/\/1\.1\.\d\.\d\/bmi\/(https?:\/\/)?/i, "http://");

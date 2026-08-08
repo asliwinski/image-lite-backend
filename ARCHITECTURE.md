@@ -3,9 +3,7 @@
 This repo is the compression proxy behind the **Image Lite** browser extension
 (the extension lives in a separate, local-only repo). It downloads an image on
 the user's behalf, compresses/resizes it on the fly (never touching disk), and
-streams back a smaller image. Forked from a serverless port of
-[bandwidth-hero-proxy](https://github.com/ayastreb/bandwidth-hero); this doc
-describes the Image Lite-specific state.
+streams back a smaller image.
 
 The **same codebase deploys to three runtimes**. Only the image encoder differs,
 because `sharp` needs native `libvips` which the Cloudflare Workers runtime

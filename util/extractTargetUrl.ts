@@ -17,9 +17,8 @@
  * broken image. That was the main reason images weren't proxied reliably.
  *
  * Instead we take everything after the FIRST `url=` in the raw query string,
- * verbatim. If that isn't a valid absolute URL (e.g. a client such as upstream
- * Bandwidth-Hero that DID percent-encode the value), we fall back to decoding
- * it once.
+ * verbatim. If that isn't a valid absolute URL (e.g. a client that DID
+ * percent-encode the value), we fall back to decoding it once.
  *
  * @param rawQuery the raw query string, WITHOUT a leading "?"
  * @returns the target URL, or null if none could be recovered

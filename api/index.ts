@@ -131,7 +131,7 @@ export default async function (
 
   // If no URL provided, return a default response
   if (!url) {
-    return response.status(200).send("bandwidth-hero-proxy");
+    return response.status(200).send("Image Lite proxy");
   }
 
   // Replace specific pattern in the URL
@@ -243,7 +243,7 @@ export async function handler(event: HandlerEvent) {
   const opts = extractOptions(event.rawQuery);
 
   if (!url) {
-    return { statusCode: 200, body: "bandwidth-hero-proxy" };
+    return { statusCode: 200, body: "Image Lite proxy" };
   }
 
   url = url.replace(/http:\/\/1\.1\.\d\.\d\/bmi\/(https?:\/\/)?/i, "http://");

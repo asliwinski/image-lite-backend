@@ -50,7 +50,7 @@ describe("extractTargetUrl", () => {
   });
 
   it("decodes a percent-encoded value when the verbatim form is not a valid URL", () => {
-    // Some clients (e.g. upstream Bandwidth-Hero) DO percent-encode the value.
+    // Some clients DO percent-encode the value.
     expect(
       extractTargetUrl("url=https%3A%2F%2Fcdn.example.com%2Fimg.jpg%3Fa%3Db"),
     ).toBe("https://cdn.example.com/img.jpg?a=b");
