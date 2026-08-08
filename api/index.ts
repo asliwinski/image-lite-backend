@@ -4,7 +4,11 @@ import compress from "../util/compress";
 import extractTargetUrl from "../util/extractTargetUrl";
 import extractOptions from "../util/extractOptions";
 import resolveFormat from "../util/resolveFormat";
-import { ORIGIN_ACCEPT, BROWSER_FETCH_HEADERS } from "../util/headers";
+import {
+  ORIGIN_ACCEPT,
+  BROWSER_FETCH_HEADERS,
+  looksLikeBlockPage,
+} from "../util/headers";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { HandlerEvent } from "@netlify/functions";
 
@@ -174,6 +178,13 @@ export default async function (
     const { data, type, headers } = fetched;
     const originalSize = data.byteLength;
 
+    // Origin served an HTML/text page (a bot challenge or error), not an image.
+    // Don't pass it through as an image — it would trip the browser's ORB.
+    if (looksLikeBlockPage(type)) {
+      console.log(`Non-image response (${type}); refusing to serve`);
+      return response.status(403).send("");
+    }
+
     if (!shouldCompress(type, originalSize, format !== "jpeg")) {
       console.log(`Bypassing... Size: ${originalSize}, type: ${type}`);
       return sendOriginal(response, data, type, headers, request.headers.host);
@@ -273,6 +284,13 @@ export async function handler(event: HandlerEvent) {
     const { data, type, headers } = fetched;
 
     const originalSize = data.byteLength;
+
+    // Origin served an HTML/text page (bot challenge/error), not an image —
+    // refuse it rather than pass HTML through as an image (would trip ORB).
+    if (looksLikeBlockPage(type)) {
+      console.log(`Non-image response (${type}); refusing to serve`);
+      return { statusCode: 403, body: "" };
+    }
 
     // Return the original image (base64) with proxied headers.
     const sendOriginal = () => {

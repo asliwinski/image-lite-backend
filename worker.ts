@@ -12,6 +12,7 @@ import {
   FORWARDED_REQUEST_HEADERS,
   ORIGIN_ACCEPT,
   BROWSER_FETCH_HEADERS,
+  looksLikeBlockPage,
   isCspHeader,
   patchCspValue,
 } from "./util/headers";
@@ -105,6 +106,17 @@ export default {
       }
 
       const type = originResponse.headers.get("content-type") || "";
+
+      // Origin served an HTML/text page (bot challenge/error), not an image —
+      // refuse it rather than pass HTML through as an image (would trip ORB).
+      if (looksLikeBlockPage(type)) {
+        console.log(`Non-image response (${type}); refusing to serve`);
+        return new Response("", {
+          status: 403,
+          headers: buildHeaders(originResponse.headers, host),
+        });
+      }
+
       const buffer = await originResponse.arrayBuffer();
       const originalSize = buffer.byteLength;
       const isSvg = type.includes("svg");
