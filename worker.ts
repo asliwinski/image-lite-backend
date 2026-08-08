@@ -12,6 +12,7 @@ import {
   FORWARDED_REQUEST_HEADERS,
   ORIGIN_ACCEPT,
   BROWSER_FETCH_HEADERS,
+  IMAGE_CACHE_CONTROL,
   looksLikeBlockPage,
   isCspHeader,
   patchCspValue,
@@ -159,7 +160,7 @@ export default {
         headers.set("content-type", contentType);
         headers.delete("content-length");
         headers.delete("content-encoding");
-        headers.set("cache-control", "max-age=2592000");
+        headers.set("cache-control", IMAGE_CACHE_CONTROL);
         headers.set("x-original-size", String(originalSize));
         headers.set("x-bytes-saved", String(saved));
         return new Response(data, { status: 200, headers });

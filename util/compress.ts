@@ -1,5 +1,6 @@
 // @ts-ignore
 import sharp from "sharp";
+import { IMAGE_CACHE_CONTROL } from "./headers";
 
 // AVIF (AV1) encoding is far more CPU-heavy than WebP and can exceed serverless
 // limits (Vercel's ~10s function timeout, Cloudflare's 10ms CPU) on larger
@@ -20,8 +21,10 @@ async function compress(
 ) {
   try {
     // Read the source with all frames so animated GIFs/WebPs keep their
-    // animation (single-frame images are unaffected).
-    const meta = await sharp(imagePath, { animated: true }).metadata();
+    // animation (single-frame images are unaffected). One sharp instance for
+    // both metadata and the encode pipeline — no double parse of the input.
+    const pipeline = sharp(imagePath, { animated: true });
+    const meta = await pipeline.metadata();
     const isAnimated = (meta.pages || 1) > 1;
 
     // Estimate the encoded (post-resize) pixel count so we can keep AVIF within
@@ -52,7 +55,7 @@ async function compress(
 
     // Resize down to maxWidth (preserving aspect ratio, never enlarging) before
     // encoding, so a webmaster's oversized image doesn't ship full-resolution.
-    const pipeline = sharp(imagePath, { animated: true }).grayscale(grayscale);
+    pipeline.grayscale(grayscale);
     if (maxWidth > 0) {
       pipeline.resize({ width: maxWidth, withoutEnlargement: true });
     }
@@ -72,7 +75,7 @@ async function compress(
 
     const bytesSaved = originalSize - info.size;
     const headers = {
-      "cache-control": "max-age=2592000",
+      "cache-control": IMAGE_CACHE_CONTROL,
       "content-type": `image/${outputFormat}`,
       "content-length": info.size,
       "x-original-size": originalSize,

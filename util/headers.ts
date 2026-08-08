@@ -22,6 +22,13 @@ export const FORWARDED_REQUEST_HEADERS = [
 // target browser renders it, so passthrough is always safe.
 export const ORIGIN_ACCEPT = "image/webp,image/*,*/*";
 
+// Cache-control for compressed responses. The proxy URL bakes in the options and
+// the source URL, so a given URL's output never changes — mark it immutable and
+// let shared caches (Vercel/CDN edge via s-maxage) serve repeats without
+// re-invoking the function, re-fetching the origin, or re-encoding.
+export const IMAGE_CACHE_CONTROL =
+  "public, max-age=2592000, s-maxage=2592000, immutable";
+
 // Browser-like fetch metadata / client hints. A bare server-side fetch omits
 // these, so some CDNs' bot protection 403s it. Sending them mimics a real
 // same-site image request. (Won't defeat TLS-fingerprint or IP-based blocks.)
