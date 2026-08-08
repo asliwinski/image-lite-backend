@@ -35,6 +35,19 @@ export const BROWSER_FETCH_HEADERS: Record<string, string> = {
   "sec-ch-ua-platform": '"Windows"',
 };
 
+/**
+ * True if an image request's response is really an HTML/text/JSON page — i.e. the
+ * origin served a bot-challenge or error page instead of an image. Passing that
+ * through as an image trips the browser's Opaque Response Blocking (ERR_BLOCKED_BY_ORB),
+ * so callers return an error status instead (which the extension auto-heals on).
+ * image/svg+xml is fine — the image/ prefix check excludes it before the xml test.
+ */
+export function looksLikeBlockPage(contentType: string): boolean {
+  const t = (contentType || "").toLowerCase();
+  if (!t || t.startsWith("image/")) return false;
+  return t.startsWith("text/") || /html|json|xml/.test(t);
+}
+
 /** True if the header name is a Content-Security-Policy header (any variant). */
 export function isCspHeader(name: string): boolean {
   return /content-security-policy/i.test(name);
