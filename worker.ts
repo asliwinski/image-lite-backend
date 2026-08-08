@@ -11,6 +11,7 @@ import compressWasm, { canCompress } from "./util/compressWasm";
 import {
   FORWARDED_REQUEST_HEADERS,
   ORIGIN_ACCEPT,
+  BROWSER_FETCH_HEADERS,
   isCspHeader,
   patchCspValue,
 } from "./util/headers";
@@ -86,6 +87,10 @@ export default {
       }
       // Ask the origin for WebP so we don't get handed a fat legacy JPEG.
       originHeaders.set("accept", ORIGIN_ACCEPT);
+      // Browser-like fetch metadata / client hints to get past some bot checks.
+      for (const [k, v] of Object.entries(BROWSER_FETCH_HEADERS)) {
+        originHeaders.set(k, v);
+      }
 
       const originResponse = await fetch(url, { headers: originHeaders });
 

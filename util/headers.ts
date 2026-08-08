@@ -22,6 +22,19 @@ export const FORWARDED_REQUEST_HEADERS = [
 // target browser renders it, so passthrough is always safe.
 export const ORIGIN_ACCEPT = "image/webp,image/*,*/*";
 
+// Browser-like fetch metadata / client hints. A bare server-side fetch omits
+// these, so some CDNs' bot protection 403s it. Sending them mimics a real
+// same-site image request. (Won't defeat TLS-fingerprint or IP-based blocks.)
+export const BROWSER_FETCH_HEADERS: Record<string, string> = {
+  "sec-fetch-dest": "image",
+  "sec-fetch-mode": "no-cors",
+  "sec-fetch-site": "same-site",
+  "accept-language": "en-US,en;q=0.9",
+  "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": '"Windows"',
+};
+
 /** True if the header name is a Content-Security-Policy header (any variant). */
 export function isCspHeader(name: string): boolean {
   return /content-security-policy/i.test(name);
