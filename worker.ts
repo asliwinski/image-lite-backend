@@ -37,6 +37,12 @@ function buildHeaders(origin: Headers, host: string): Headers {
   // Don't forward the origin's Set-Cookie to the browser, and so the response
   // stays edge-cacheable (Cloudflare won't cache a response with Set-Cookie).
   headers.delete("set-cookie");
+  // We read (and thus decoded) the body, so the origin's Content-Encoding no
+  // longer matches the bytes we send — relaying it would make the browser try to
+  // gunzip decoded bytes (ERR_CONTENT_DECODING_FAILED). The length changed too;
+  // the runtime sets the correct one from the body we return.
+  headers.delete("content-encoding");
+  headers.delete("content-length");
   return headers;
 }
 

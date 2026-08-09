@@ -49,6 +49,13 @@ function patchContentSecurity(
   finalHeaders["access-control-allow-origin"] = "*";
   finalHeaders["cross-origin-resource-policy"] = "cross-origin";
 
+  // We read (and thus decoded) the body and re-serve identity bytes — and the
+  // length changes when we recompress — so never relay the origin's
+  // Content-Encoding/Length. A stale Content-Encoding makes the browser try to
+  // gunzip already-decoded bytes → ERR_CONTENT_DECODING_FAILED.
+  delete finalHeaders["content-encoding"];
+  delete finalHeaders["content-length"];
+
   return finalHeaders;
 }
 
