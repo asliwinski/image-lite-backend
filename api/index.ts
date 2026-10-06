@@ -4,6 +4,7 @@ import compress from "../util/compress";
 import extractTargetUrl from "../util/extractTargetUrl";
 import extractOptions from "../util/extractOptions";
 import resolveFormat from "../util/resolveFormat";
+import fetchOrigin, { originErrorStatus } from "../util/fetchOrigin";
 import {
   ORIGIN_ACCEPT,
   BROWSER_FETCH_HEADERS,
@@ -64,7 +65,16 @@ function stripMixedContentCSP(CSPHeader: string) {
 }
 
 async function fetchData(url: string, headers: Headers) {
-  const response = await fetch(url, { headers });
+  let response: Response;
+  try {
+    response = await fetchOrigin(url, { headers });
+  } catch (error) {
+    // Origin never responded (timed out / connection failed) — a gateway status
+    // (not the generic 500) so the extension loads this host's images directly.
+    const statusCode = originErrorStatus(error);
+    console.log(`Origin fetch failed (${statusCode}): ${error.message}`);
+    return { statusCode };
+  }
   if (!response.ok) {
     return { statusCode: response.status || 302 };
   }
