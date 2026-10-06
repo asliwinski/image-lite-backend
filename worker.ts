@@ -8,6 +8,7 @@ import extractOptions from "./util/extractOptions";
 import resolveFormat from "./util/resolveFormat";
 import shouldCompress from "./util/shouldCompress";
 import compressWasm, { canCompress } from "./util/compressWasm";
+import fetchOrigin, { originErrorStatus } from "./util/fetchOrigin";
 import {
   FORWARDED_REQUEST_HEADERS,
   ORIGIN_ACCEPT,
@@ -114,13 +115,27 @@ async function handleRequest(request: Request): Promise<Response> {
 
     // Cache the source image at Cloudflare's edge so re-fetching it (on a
     // worker-output cache miss) is a cache hit. Only cache 2xx, never errors.
-    const originResponse = await fetch(url, {
-      headers: originHeaders,
-      cf: {
-        cacheEverything: true,
-        cacheTtlByStatus: { "200-299": 2592000, "400-599": 0 },
-      },
-    } as RequestInit & { cf: unknown });
+    let originResponse: Response;
+    try {
+      originResponse = await fetchOrigin(url, {
+        headers: originHeaders,
+        cf: {
+          cacheEverything: true,
+          cacheTtlByStatus: { "200-299": 2592000, "400-599": 0 },
+        },
+      } as RequestInit & { cf: unknown });
+    } catch (error) {
+      // Origin never responded (timed out / connection failed) — answer with a
+      // gateway status so the extension loads this host's images directly.
+      const status = originErrorStatus(error);
+      console.log(
+        `Origin fetch failed (${status}): ${(error as Error).message}`,
+      );
+      return new Response("", {
+        status,
+        headers: buildHeaders(new Headers(), host),
+      });
+    }
 
     if (!originResponse.ok) {
       // Stream the origin's failure through (with CORS) so the browser can

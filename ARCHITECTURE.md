@@ -96,6 +96,18 @@ On origin fetch failure the proxy returns the **origin's status code** (not a
 500/crash) — e.g. CDNs like `styles.redditmedia.com` that block datacenter
 fetches. (The extension also excludes such domains from proxying entirely.)
 
+If the origin **never responds**, `util/fetchOrigin.ts` answers with a gateway
+status instead: **504** when the response headers don't arrive within
+`ORIGIN_TIMEOUT_MS` (5s), **502** when the connection fails outright (DNS,
+refused, reset, TLS). Some origins (e.g. `rozklad-pkp.pl`) silently drop
+datacenter IPs while serving browsers fine; uncapped, that hung until the
+platform gave up — a 522 after ~20s on the Worker, Vercel's 10s function limit
+(504), a generic 500 on Netlify — and the browser waited that long per image.
+The extension's auto-heal excludes a host on 502/504 and loads its images
+directly, so failing fast and with a specific status gets them showing sooner.
+Only the headers are timed — once the response starts, a large image may take
+longer to download.
+
 ---
 
 ## Deployment
@@ -111,7 +123,7 @@ fetches. (The extension also excludes such domains from proxying entirely.)
   dual default+`handler` export made it pick the wrong runtime and 502).
 
 Tests: `npm test` (Jest) — covers `extractOptions`, `extractTargetUrl`,
-`resolveFormat`, `shouldCompress`.
+`resolveFormat`, `shouldCompress`, `fetchOrigin`.
 
 ---
 
@@ -123,6 +135,8 @@ Tests: `npm test` (Jest) — covers `extractOptions`, `extractTargetUrl`,
   re-parsing the query string.
 - **Non-ok origin fetch** no longer crashes (`Buffer.from(undefined)`); returns
   the origin status.
+- **Unreachable origin** — 5s header timeout; 504/502 instead of hanging ~20s
+  (Worker 522) or a generic 500 (Netlify).
 - **`.ico`/undecodable images** return the original instead of 500.
 - **Netlify 502** — split into a v1-only re-export with external `sharp`.
 - **Animated GIF → WebP** on sharp backends; Worker falls back to WebP.
